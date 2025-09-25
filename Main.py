@@ -1,7 +1,34 @@
 # SCA - Sistema de Controle de Acesso
 # V1 - 19/09/2025 - Implementação inicial do projeto
+# V2 - 25/09/2025 - Implementação de fala, consulta ao DB
 import sqlite3
 import cv2
+import win32com.client
+import datetime
+
+"""
+    Parte de vozes do windows
+"""
+
+speaker = win32com.client.Dispatch("SAPI.SpVoice")
+
+for i, voice in enumerate(speaker.GetVoices()):
+    print(i,voice.getDescription())
+
+speaker.Rate=2 #-10 a 10
+
+
+while True:
+    try:
+        idioma = int(input("Escolha seu idioma preferido para TTS: "))
+        break
+    except ValueError:
+        print("Erro, coloque um número inteiro válido.")
+
+
+speaker.Voice=speaker.GetVoices().Item(idioma)
+print(f"Idioma escolhido: {speaker.GetVoices().Item(idioma).GetDescription()}")
+
 
 #
 # Inicialização
