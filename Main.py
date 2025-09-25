@@ -5,7 +5,7 @@ import sqlite3
 import cv2
 import win32com.client
 from datetime import datetime
-
+from dotenv import load_dotenv
 
 
 """

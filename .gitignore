@@ -1,0 +1,15 @@
+# Arquivo de credenciais
+*.env
+
+# Banco de dados local
+*.db
+
+# Arquivos temporários do Python
+__pycache__/
+*.pyc
+
+# Arquivos do IntelliJ / IDEA
+.idea/
+
+# Imagens geradas (se não quiser versionar fotos de usuários)
+*.png
