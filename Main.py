@@ -5,8 +5,9 @@ import sqlite3
 import cv2
 import win32com.client
 from datetime import datetime
+import os
 from dotenv import load_dotenv
-
+load_dotenv("dadosSensiveis.env")
 
 """
     Parte de vozes do windows
@@ -30,6 +31,24 @@ while True:
 
 speaker.Voice=speaker.GetVoices().Item(idioma)
 print(f"Idioma escolhido: {speaker.GetVoices().Item(idioma).GetDescription()}")
+
+#Código do e-mail
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Configurações do servidor
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+email_usuario = os.getenv("EMAIL_USUARIO") #Coloque aqui o email em que é pra ser logado
+email_senha = os.getenv("EMAIL_SENHA") #Coloque aqui a chave de API do envio de email
+
+if not email_usuario :
+    print("EMAIL_USUARIO não carregados!")
+if not email_senha:
+    print("EMAIL_SENHA não carregado!")
+    exit()
 
 
 #
@@ -149,50 +168,76 @@ def buscar_cartao(cartao):
                 speaker.Speak("Boa noite, " + resultado[1])
 
             cv2.destroyAllWindows()
+            remetente = email_usuario
+            destinatario = resultado[4]
+            assunto = f"Acesso: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            corpo = f"{resultado[1]} | {assunto}"
+
+            msg = MIMEMultipart()
+            msg['From'] = remetente
+            msg['To'] = destinatario
+            msg['Subject'] = assunto
+            msg.attach(MIMEText(corpo, 'plain'))
+
+            try:
+                # Conectar ao servidor
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                server.starttls()  # segurança
+                server.login(email_usuario, email_senha)
+
+                # Enviar e-mail
+                server.sendmail(remetente, destinatario, msg.as_string())
+                print("E-mail enviado com sucesso!")
+
+                server.quit()
+            except Exception as e:
+                print(f"Erro ao enviar e-mail: {e}")
 
     else:
         print("Cartão não cadastrado!")
         speaker.Speak("Acesso bloqueado!")
 
 
-#Código do e-mail
+#
+# Listar todos os usuarios
+#
+def listar_usuarios():
+    cursor.execute("SELECT * FROM usuarios")
+    resultados = cursor.fetchall()
+    if resultados:
+        print("Lista de usuários cadastrados")
+        for usuario in resultados:
 
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+            print(f"CPF: {usuario[0]}")
+            print(f"Nome: {usuario[1]}")
+            print(f"Cartão: {usuario[2]}")
+            print(f"Email: {usuario[4]}")
+            print(f"Telefone: {usuario[5]}")
+            print("*"*50)
+    else:
+        print("Não há usuários cadastrados!")
 
-# Configurações do servidor
-smtp_server = "smtp.gmail.com"
-smtp_port = 587
-email_usuario = "" #Coloque aqui o email em que é pra ser logado
-email_senha = "" #Coloque aqui a chave de API do envio de email
+#
+# EXCLUIR
+#
 
-# Configuração da mensagem
-remetente = email_usuario
-destinatario = "" #Coloque aqui para quem queira enviar o email, mais tarde modifico para poder escolher para quem enviar
-assunto = "Teste de envio de e-mail"
-corpo = "Olá! Este é um e-mail enviado via Python."
+def exlcuir_usuario():
+    print("*** Excluir Usuário ****")
+    cpf = input("Informe o CPF: ")
 
-# Criação da mensagem
-msg = MIMEMultipart()
-msg["From"] = remetente
-msg["To"] = destinatario
-msg["Subject"] = assunto
-msg.attach(MIMEText(corpo, "plain"))
+    cursor.execute("SELECT * FROM usuarios WHERE CPF = ?", (cpf,))
+    resultado = cursor.fetchone()
 
-try:
-    # Conectar ao servidor
-    server = smtplib.SMTP(smtp_server, smtp_port)
-    server.starttls()  # segurança
-    server.login(email_usuario, email_senha)
-
-    # Enviar e-mail
-    server.sendmail(remetente, destinatario, msg.as_string())
-    print("E-mail enviado com sucesso!")
-
-    server.quit()
-except Exception as e:
-    print(f"Erro ao enviar e-mail: {e}")
+    if resultado:
+        confirma = input(f"deseja REALMENTE apagar? S/N {resultado[1]}: ")
+        if confirma == "S":
+            cursor.execute("DELETE FROM usuarios WHERE CPF = ?", (cpf,))
+            print("Apagado com sucesso!")
+            conexao.commit()
+        else:
+            print("Comando não executado")
+    else:
+        print("Usuario não cadastrado!")
 
 
 #
@@ -203,13 +248,19 @@ def menu():
         print("=== SCA - Sistema de Controle de Acesso")
         print("1. Cadastrar")
         print("2. Buscar")
+        print("3. Listar Usuários")
+        print("4. Excluir Usuario")
         print("6. Sair")
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
             cadastrar()
-        if opcao == "2":
+        elif opcao == "2":
             buscar_cpf()
+        elif opcao == "3":
+            listar_usuarios()
+        elif opcao == "4":
+            exlcuir_usuario()
         elif opcao == "6":
             print("Saindo do sistema")
             conexao.close()
