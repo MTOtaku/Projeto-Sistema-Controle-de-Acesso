@@ -4,7 +4,9 @@
 import sqlite3
 import cv2
 import win32com.client
-import datetime
+from datetime import datetime
+
+
 
 """
     Parte de vozes do windows
@@ -94,9 +96,9 @@ def cadastrar():
 
 
 #
-# Buscar
+# Buscar por CPF
 #
-def buscar():
+def buscar_cpf():
     print("=== Buscar por CPF ===")
     cpf = input("Informe o CPF: ")
     cursor.execute("SELECT * FROM usuarios WHERE CPF = ?", (cpf,))
@@ -120,6 +122,80 @@ def buscar():
 
 
 #
+# Buscar por Cartão
+#
+def buscar_cartao(cartao):
+    cursor.execute("SELECT * FROM usuarios WHERE cartao = ?", (cartao,))
+    resultado = cursor.fetchone()
+
+    if resultado:
+        print("CPF: ", resultado[0])
+        print("Nome: ", resultado[1])
+        print("Cartão: ", resultado[2])
+        print("Email: ", resultado[4])
+        print("Telefone: ", resultado[5])
+
+        if resultado[3]:
+            img = cv2.imread(resultado[3])
+            cv2.imshow(f"Foto de {resultado[1]}", img)
+            cv2.waitKey(2000)
+
+            hora = datetime.now().hour
+            if 6 <= hora < 12:
+                speaker.Speak("Bom dia, " + resultado[1])
+            elif 12 <= hora < 18:
+                speaker.Speak("Boa tarde, " + resultado[1])
+            else:
+                speaker.Speak("Boa noite, " + resultado[1])
+
+            cv2.destroyAllWindows()
+
+    else:
+        print("Cartão não cadastrado!")
+        speaker.Speak("Acesso bloqueado!")
+
+
+#Código do e-mail
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Configurações do servidor
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+email_usuario = "" #Coloque aqui o email em que é pra ser logado
+email_senha = "" #Coloque aqui a chave de API do envio de email
+
+# Configuração da mensagem
+remetente = email_usuario
+destinatario = "" #Coloque aqui para quem queira enviar o email, mais tarde modifico para poder escolher para quem enviar
+assunto = "Teste de envio de e-mail"
+corpo = "Olá! Este é um e-mail enviado via Python."
+
+# Criação da mensagem
+msg = MIMEMultipart()
+msg["From"] = remetente
+msg["To"] = destinatario
+msg["Subject"] = assunto
+msg.attach(MIMEText(corpo, "plain"))
+
+try:
+    # Conectar ao servidor
+    server = smtplib.SMTP(smtp_server, smtp_port)
+    server.starttls()  # segurança
+    server.login(email_usuario, email_senha)
+
+    # Enviar e-mail
+    server.sendmail(remetente, destinatario, msg.as_string())
+    print("E-mail enviado com sucesso!")
+
+    server.quit()
+except Exception as e:
+    print(f"Erro ao enviar e-mail: {e}")
+
+
+#
 # Menu
 #
 def menu():
@@ -133,13 +209,13 @@ def menu():
         if opcao == "1":
             cadastrar()
         if opcao == "2":
-            buscar()
+            buscar_cpf()
         elif opcao == "6":
             print("Saindo do sistema")
             conexao.close()
             break
         else:
-            print("Opção inválida")
+            buscar_cartao(opcao)
 
 
 #
